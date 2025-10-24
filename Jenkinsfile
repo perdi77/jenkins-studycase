@@ -21,7 +21,7 @@ pipeline {
       steps {
         script {
           echo "🛠️ Building image ${IMAGE}:${TAG}..."
-          def builtImage = docker.build("${IMAGE}:${TAG}")
+          docker.build("${IMAGE}:${TAG}")
         }
       }
     }
@@ -29,7 +29,7 @@ pipeline {
     stage('Push Docker Image') {
       steps {
         withCredentials([usernamePassword(
-          credentialsId: "docker-hub",
+          credentialsId: "${DOCKER_CRED}",
           usernameVariable: 'USER',
           passwordVariable: 'PASS'
         )]) {
@@ -45,6 +45,12 @@ pipeline {
     }
 
     stage('Deploy to Kubernetes (Helm)') {
+      agent {
+        docker {
+          image 'alpine/helm:3.14.0' // Image resmi Helm
+          args '-v /var/jenkins_home/.kube:/root/.kube' // Mount opsional
+        }
+      }
       steps {
         withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBE_FILE')]) {
           script {
@@ -71,5 +77,3 @@ pipeline {
     }
   }
 }
-
-
