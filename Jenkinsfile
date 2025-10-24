@@ -11,9 +11,13 @@ pipeline {
   }
 
   stages {
+
     stage('Checkout Source Code') {
       steps {
-        git url: 'https://github.com/perdi77/jenkins-studycase.git', branch: 'main'
+        // pastikan workspace bersih dan benar-benar git repo
+        deleteDir()
+        echo "📥 Checking out source code..."
+        git branch: 'main', url: 'https://github.com/perdi77/jenkins-studycase.git'
       }
     }
 
@@ -21,7 +25,9 @@ pipeline {
       steps {
         script {
           echo "🛠️ Building image ${IMAGE}:${TAG}..."
-          docker.build("${IMAGE}:${TAG}")
+          sh """
+            docker build -t ${IMAGE}:${TAG} .
+          """
         }
       }
     }
@@ -34,7 +40,7 @@ pipeline {
           passwordVariable: 'PASS'
         )]) {
           script {
-            echo "📦 Pushing image to DockerHub..."
+            echo "📦 Pushing image to Docker Hub..."
             sh """
               echo "$PASS" | docker login -u "$USER" --password-stdin
               docker push ${IMAGE}:${TAG}
@@ -56,9 +62,8 @@ pipeline {
           script {
             echo "🚀 Deploying to Kubernetes via Helm..."
             sh """
-              echo '📄 Using kubeconfig from: $KUBE_FILE'
-              cat $KUBE_FILE | head -20
               export KUBECONFIG=$KUBE_FILE
+              echo "📄 Using kubeconfig from: $KUBE_FILE"
               helm version
               helm upgrade --install ${HELM_RELEASE} ./helm \
                 --set image.repository=${IMAGE} \
