@@ -44,32 +44,32 @@ pipeline {
       }
     }
 
-stage('Deploy to Kubernetes (Helm)') {
-  agent {
-    docker {
-      image 'alpine/helm:3.14.0'
-      args '--entrypoint="" -v /var/jenkins_home/.kube:/root/.kube'
-    }
-  }
-  steps {
-    withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBE_FILE')]) {
-      script {
-        echo "🚀 Deploying to Kubernetes via Helm..."
-        sh """
-          echo '📄 Using kubeconfig from: $KUBE_FILE'
-          cat $KUBE_FILE | head -20
-          export KUBECONFIG=$KUBE_FILE
-          helm version
-          helm upgrade --install ${HELM_RELEASE} ./helm \
-            --set image.repository=${IMAGE} \
-            --set image.tag=${TAG} \
-            --namespace ${NAMESPACE} --create-namespace
-        """
+    stage('Deploy to Kubernetes (Helm)') {
+      agent {
+        docker {
+          image 'alpine/helm:3.14.0'
+          args '--entrypoint="" -v /var/jenkins_home/.kube:/root/.kube'
+        }
+      }
+      steps {
+        withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBE_FILE')]) {
+          script {
+            echo "🚀 Deploying to Kubernetes via Helm..."
+            sh """
+              echo '📄 Using kubeconfig from: $KUBE_FILE'
+              cat $KUBE_FILE | head -20
+              export KUBECONFIG=$KUBE_FILE
+              helm version
+              helm upgrade --install ${HELM_RELEASE} ./helm \
+                --set image.repository=${IMAGE} \
+                --set image.tag=${TAG} \
+                --namespace ${NAMESPACE} --create-namespace
+            """
+          }
+        }
       }
     }
   }
-}
-
 
   post {
     success {
@@ -80,4 +80,3 @@ stage('Deploy to Kubernetes (Helm)') {
     }
   }
 }
-
